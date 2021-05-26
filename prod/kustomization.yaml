@@ -1,0 +1,10 @@
+bases:
+- ../base
+configMapGenerator:
+  - name: environment
+    behavior: merge
+    files:
+      - values.yaml=configmap.yaml
+## Comment out the next two lines below if a secrets.enc.yaml is created in this directory
+#patchesStrategicMerge:
+# - secrets.enc.yaml

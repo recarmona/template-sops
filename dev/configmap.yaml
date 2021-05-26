@@ -1,0 +1,108 @@
+hostname: bigbang.dev
+
+flux:
+  interval: 1m
+  rollback:
+    cleanupOnFail: false
+
+logging:
+  enabled: true
+  values:
+    elasticsearch:
+      master:
+        count: 1
+        persistence:
+          size: 5Gi
+        resources:
+          requests:
+            cpu: .5
+          limits: {}
+      data:
+        count: 1
+        persistence:
+          size: 5Gi
+        resources:
+          requests:
+            cpu: .5
+          limits: {}
+
+fluentbit:
+  values:
+    securityContext:
+      privileged: true
+
+istio:
+  enabled: true
+  values:
+    kiali:
+      dashboard:
+        auth:
+          strategy: "anonymous"
+
+clusterAuditor:
+  enabled: true
+  values:
+    resources:
+      requests:
+        cpu: 100m
+        memory: .5Gi
+      limits: {}
+
+monitoring:
+  enabled: true
+  values:
+    alertmanager:
+      alertmanagerSpec:
+        resources:
+          requests:
+            cpu: 100m
+            memory: 200Mi
+          limits: {}
+    prometheusOperator:
+      resources:
+        requests:
+          cpu: 250m
+          memory: 400Mi
+        limits: {}
+    prometheus:
+      prometheusSpec:
+        resources:
+          requests:
+            cpu: 100m
+            memory: 200Mi
+          limits: {}
+    grafana:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits: {}
+    kubeStateMetrics:
+      resources:
+        requests:
+          cpu: 10m
+          memory: 32Mi
+        limits: {}
+    nodeExporter:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 30Mi
+        limits: {}
+
+gatekeeper:
+  enabled: true
+  values:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits: {}
+
+twistlock:
+  enabled: false
+  values:
+    console:
+      persistence:
+        size: 5Gi
