@@ -117,8 +117,6 @@ stringData:
         password: replace-with-your-iron-bank-personal-access-token
 ```
 
-> If you use a private git repository, you will need to add your username and personal access token to the `registryCredentials` list.
-
 When you save the file, it will automatically encrypt your secret using SOPS.
 
 ```shell
