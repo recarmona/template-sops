@@ -1,0 +1,10 @@
+# AWS region to apply cluster
+# Common variables for the region
+
+# Name of the AWS region
+region: "us-gov-west-1"
+
+# Tags to apply to all resources in region
+region_tags:
+  Terraform: "true"
+  Owner: "bigbang"
