@@ -2,9 +2,9 @@
 
 #### _This is a mirror of a government repo hosted on [Repo1](https://repo1.dso.mil/) by [DoD Platform One](http://p1.dso.mil/).  Please direct all code changes, issues and comments to https://repo1.dso.mil/platform-one/big-bang/customers/template_
 
-The terraform/terragrunt code in this directory will setup the infrastructure for a Big Bang deployment in Amazon Web Services (AWS).  It starts from scratch with a new VPC and finishes by deploying a multi-node [RKE2 Cluster](https://docs.rke2.io/).  The cluster can then be used to deploy Big Bang.
+The terraform/terragrunt code in this directory will setup all the infrastructure for a Big Bang deployment in Amazon Web Services (AWS).  It starts from scratch with a new VPC and finishes by deploying a multi-node [RKE2 Cluster](https://docs.rke2.io/).  The infrastructure and cluster provisioned can then be used to deploy Big Bang.
 
-> This code is intended to be a starting point / example for users to get their infrastructure setup quickly.  It is up to the users to futher customize and secure the infrastructure for the intended use.
+> This code is intended to be a forkable starting point / example for users to get their infrastructure setup quickly.  It is up to the users to futher customize and secure the infrastructure for the intended use.
 
 ## Layout
 
@@ -51,6 +51,7 @@ terraform
     terragrunt run-all plan
 
     # Deploy
+    # WARNING: This will spin up infrastructure on your AWS account tuned for a lightly loaded production environment, this incurs cost!
     terragrunt run-all apply
     ```
 
@@ -90,15 +91,16 @@ terraform
   > exit
   > ```
 
-The infrastructure is now setup.  You still need to configure the [storage class](#storage-class) and [node ports](#node-ports) in the Kubernetes cluster for Big Bang.
+The infrastructure is now setup.  You still need to configure the Big Bang specific [cluster pre-requisites](#big-bang-cluster-pre-requisites).
 
-## Big Bang Deployment
+## Big Bang Cluster Pre-Requisites
 
+Prior to installing Big Bang, there are a few cluster agnostic specific pre-requisites that must be set up before proceeding, these are outlined below, or on Big Bang's [prerequisites page](https://repo1.dso.mil/platform-one/big-bang/bigbang/-/tree/master/docs/guides/prerequisites).
 Prior to deploying Big Bang, you should setup the following in the Kubernetes cluster created by the [Quickstart](#quickstart).
 
 ### Storage Class
 
-Big Bang must have a default storage class.  The following will install a storage class for [AWS EBS](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AmazonEBS.html).
+By default, Big Bang will use the cluster's default `StorageClass` to dynamically provision the required persistent volumes.  This means the cluster must be able to dynamically provision PVCs.  Since we're on AWS, the simplest method is to use the [AWS EBS](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AmazonEBS.html) Storage Class using Kubernetes' in tree [AWS cloud provider](https://kubernetes.io/docs/concepts/storage/storage-classes/#aws-ebs).
 
 > Without a default storage class, some Big Bang components, like Elasticsearch, Jaeger, or Twistlock, will never reach the running state.
 
@@ -110,16 +112,22 @@ If you have an alternative storage class, you can run the following to replace t
 
 ```bash
 kubectl patch storageclass ebs -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
-kubectl apply -f <path to your storage class.yaml>
+
+# Install your storage of choice, for example...
 # For example...
-# Local-path: https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
-# Longhorn: https://raw.githubusercontent.com/longhorn/longhorn/v1.1.0/deploy/longhorn.yaml
+# OpenEBS: https://docs.openebs.io/docs/next/installation.html
+# Longhorn: https://longhorn.io/docs/1.0.0/deploy/install/
+# Rook: https://rook.io/docs/rook/v1.6/ceph-quickstart.html
 kubectl patch storageclass <name of your storage class> -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
 ```
 
 ### Node Ports
 
-In order for the external load balancer to map to the RKE2 agents, Istio's Ingress Gateways must be configured to listen and route Node Ports.  The following configuration in Big Bang's values.yaml will setup Node Ports to match the [Quickstart](#quickstart) configuration.
+To ensure ingress into the cluster, load balancers must be configured to ensure proper port mappings for `istio`.  The simplest method is the default scenario, where the cluster (`rke2` in this example) is running the appropriate cloud provider capable of dynamically provisioning load balancers when requesting `Services` of `type: LoadBalancer`.  This is the default configuration in BigBang, and if you choose to continue this way, you can skip the following steps.
+
+However, for brevity in this example, we are introducing an alternative, where the load balancer is preprovisioned and owned by terraform (from your earlier apply step). This provides more control over the load balancer, but also requires the extra step of informing `istio` on installation of the required ports to expose on each node that the pre-created load balancer should forward to.  It's important to note these are the _exact_ same steps that the cloud provider would take if we let Kubernetes provision things for us.
+
+The following configuration in Big Bang's values.yaml will setup the appropriate `NodePorts` to match the [Quickstart](#quickstart) configuration.
 
 ```yaml
 # Big Bang's values.yaml
@@ -149,7 +157,11 @@ istio:
 
 > The node port values can be customized using the `node_port_*` inputs to the [elb terraform](./modules/elb).
 
-### Post Deployment
+## Deploying Big Bang
+
+The cluster is now ready for a Big Bang installation.  To deploy Big Bang, please see the accompanying documentation at this repositories [main readme](../README.md).
+
+## Post Deployment
 
 After Big Bang is deployed, you will need to [setup DNS entries to point to the Elastic Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/using-domain-names-with-elb.html?icmpid=docs_elb_console).  You can also connect without DNS using the [debug steps below](#debug)
 
