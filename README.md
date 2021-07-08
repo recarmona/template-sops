@@ -33,11 +33,11 @@ To deploy Big Bang, the following items are required:
 - [Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
 - [Iron Bank Personal Access Token](https://registry1.dso.mil) - Under your `User Profile`, copy the `CLI secret`.
 - [Repo1 Personal Access Token](https://repo1.dso.mil/-/profile/personal_access_tokens) - You will need `read_repository` permissions.
+- [Helm](https://helm.sh/docs/intro/install/)
+- [Kustomize](https://kubectl.docs.kubernetes.io/installation/kustomize/)
 
 In addition, the following items are recommended to assist with troubleshooting:
 
-- [Helm](https://helm.sh/docs/intro/install/)
-- [Kustomize](https://kubectl.docs.kubernetes.io/installation/kustomize/)
 - [K9S](https://github.com/derailed/k9s)
 
 ## Setup
@@ -133,6 +133,10 @@ git push --set-upstream origin template-demo
 
 We need to reference your git repository so that Big Bang will use the configuration.  Add your repository into the `GitRepository` resource in `dev/bigbang.yaml`:
 
+```shell
+cd ../dev/
+```
+
 > Replace your forked Git repo where it states `replace-with-your-git-repo`.  Replace `replace-with-your-branch` with your branch name (e.g. `template-demo` as created above).
 
 ```yaml
@@ -193,7 +197,7 @@ Big Bang follows a [GitOps](https://www.weave.works/blog/what-is-gitops-really) 
 
    ```shell
    # Flux is used to sync Git with the the cluster configuration
-   curl https://repo1.dso.mil/platform-one/big-bang/bigbang/-/raw/master/scripts/deploy/flux.yaml | kubectl apply -f -
+   kustomize build https://repo1.dso.mil/platform-one/big-bang/bigbang.git//base/flux?ref=master | kubectl apply -f -
 
    # Wait for flux to complete
    kubectl get deploy -o name -n flux-system | xargs -n1 -t kubectl rollout status -n flux-system
@@ -202,7 +206,6 @@ Big Bang follows a [GitOps](https://www.weave.works/blog/what-is-gitops-really) 
 1. Deploy Big Bang
 
    ```shell
-   cd ../dev
    kubectl apply -f bigbang.yaml
 
    # Verify 'bigbang' namespace is created
